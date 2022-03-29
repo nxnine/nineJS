@@ -1,6 +1,9 @@
-// derived from fontawesome v5
+/*
+    icons.js by @nxnine
 
-//
+    SVG icons, derived from fontawesome v5
+*/
+
 (function () {
     //
     var icon = {}, _globals;
@@ -51,11 +54,13 @@
             let height = fa_data[1];
             let weight = fa_data[2];
             let vectorData = _slicedToArray(fa_data.slice(4));
+            if (typeof weight!='string'){weight='auto'};
             //
             let svgEl = document.createElement("svg");
             svgEl.setAttribute("aria-hidden","true");
             svgEl.setAttribute("focusable","false");
             svgEl.setAttribute("class","svg-inline--fa fa-w-"+weight);
+            // svgEl.setAttribute("class","svg-inline--fa");
             svgEl.setAttribute("xmlns","http://www.w3.org/2000/svg");
             svgEl.setAttribute("viewBox","0 0 ".concat(width, " ").concat(height));
             //

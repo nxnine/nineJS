@@ -1,5 +1,6 @@
 /*
-    snowflake.js implementation by @nxnine
+    snowflake.js by @nxnine
+    
     generates time based 64-bit ID
     based off https://github.com/dustinrouillard/snowflake-id
     which implements https://github.com/twitter-archive/snowflake/blob/snowflake-2010/src/main/scala/com/twitter/service/snowflake/IdWorker.scala

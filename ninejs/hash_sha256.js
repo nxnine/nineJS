@@ -1,3 +1,11 @@
+/*
+    hash_sha256.js
+
+    SHA256 implementaion in javascript
+    originally found: https://github.com/brillout/forge-sha256
+    i think
+*/
+
 (function(){
 
     var forge = {};

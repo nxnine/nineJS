@@ -4,6 +4,7 @@
     crc32
     md5
 */
+
 (function () {
     /*
         CRC32
@@ -19,8 +20,7 @@
             crcTable[n] = c;
         }
         return crcTable;
-    }()
-
+    }();
     var crc32 = function(str) {
         var crc = 0 ^ (-1);
         for (var i = 0; i < str.length; i++ ) {

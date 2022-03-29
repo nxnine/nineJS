@@ -1,6 +1,7 @@
 /*
-    modified Request from Framework7, https://framework7.io/
-    caching variant added by @nxnine
+    request.js
+
+    modified Request from Framework7
     common events:
         beforeCreate (options),
         beforeOpen (xhr, options),
@@ -16,6 +17,8 @@
         DELETE - delete
         HEAD - headers
         OPTIONS - available methods
+
+    added experimental caching variant
 */
 
 (function () {
@@ -71,7 +74,8 @@
             dataType: 'text',
             contentType: 'application/x-www-form-urlencoded',
             async: true,
-            timeout: _request_timeout
+            timeout: _request_timeout,
+            progress: function(opts,e){ console.log(e); console.log(`${e.type}: ${e.loaded} bytes transferred (${e.pct}%)`); }
         };
         Object.assign(options,requestOptions);
         options.method = options.method.toUpperCase();
@@ -138,8 +142,7 @@
             let __loaded = e.loaded;
             let __total = e.total;
             let __pct = (__loaded/__total)*100
-            console.log(e);
-            console.log(`${e.type}: ${e.loaded} bytes transferred (${__pct}%)`);
+            __req_event('progress','progress', {type:e.type,loaded:__loaded,total:__total,pct:__pct}, xhr);
         };
         xhr.addEventListener('progress', __handleEvent);
         //
@@ -224,7 +227,7 @@
                 },
                 dataType: dataType,
             };
-            if (method === 'postJSON') {
+            if (method === 'POST' && dataType === 'json') {
                 Object.assign(requestOptions,
                     {
                         contentType: 'application/json',
@@ -297,7 +300,6 @@
         var url = args[0];
         var data = args[1];
         var dataType = args[2];
-        // we steal this from RequestPromise, but we only expect json/postJSON
         //
         let _now = new Date()
         // in cache?
@@ -392,7 +394,8 @@
                 }
             );
         } else {
-            return _return_cache().data;
+            // this needs to return a promise
+            return new Promise(function(resolve){ resolve(_return_cache().data) });
         };
         //
     };

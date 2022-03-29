@@ -1,8 +1,12 @@
 /*
-    Web Components ( https://developer.mozilla.org/en-US/docs/Web/Web_Components )
-    because embedding react wasn't as much fun as I thought
-    utilizes doT templates and css injection
+    component.js by @nxnine
+    requires:
+        alot
+
+    template driven WebComponent based UI components
+    rough, very rough
 */
+
 (function () {
     //
     var nx = {}, _globals;
@@ -18,7 +22,6 @@
     };
     //
     // snowflake generator, datacenter & worker set to 31
-    //var __id_generator = new SnowflakeID(31,31);
     var __id_generator = new nine.util.snowflake(31,31);
     //
     var component = {};
@@ -36,16 +39,17 @@
     component.stylesheets = [];
     component.stylesheets_load = function(){
         component.stylesheets = [];
-        let _css_links = document.querySelectorAll("link[rel=stylesheet")
+        let _css_links = document.querySelectorAll("link[rel=stylesheet]")
         for (let _idx=0;_idx<_css_links.length;_idx++){
             component.stylesheets.push(_css_links[_idx].href);
         }
     };
     component.stylesheets_load();
-    //
-
-    // the base component
+    // used for testing
+    //window.nines = [];
     /*
+        the base component
+
         onmouseover
         onmouseout
         onmousedown
@@ -80,32 +84,35 @@
             if (!this.id){
                 this.id = component.generateID();
             };
-            // mutation observer will stop watching once object is released by GC
+            //
             if (nine.router && nine.router.observer){
                 nine.router.util.observe(this._parent);
             };
             //
         };
         connectedCallback(){
-            //console.log('nine.html.connectedCallback ['+this.id+']');
             if (this.isConnected){
-                // not pretty, but works
+                // this can cause BAD visual stutter
+                // but better than anything else so far
+                // call component.html constructor
                 this.construct();
                 //
                 this.configure();
                 this.css_inject();
+                //this.hide();
                 this.toggleOnLoad();
                 //
                 this.render();
+                //this.show();
             };
         };
         disconnectedCallback(){ this.deconstruct(); };
         // for searching the ShadowDOM
-        getElementById(elID) { return this._parent.getElementById(elID); };
-        getElementsByTagName(elTag){ return this._parent.querySelectorAll(elTag); };
-        getElementsByClassName(elClass){ return this._parent.querySelectorAll("."+elClass); };
-        getElementsByName(elName){ return this._parent.querySelectorAll("*[name="+elName+"]"); };
-        getElementsByAttribute = function(attrName){ return document.querySelectorAll("*["+attrName+"]") };
+        getById(elID) { return this.root.querySelector('#'+elID); };
+        getByTagName(elTag){ return this.root.querySelectorAll(elTag); };
+        getElementsByClassName(elClass){ return this.root.querySelectorAll("."+elClass); };
+        getElementsByName(elName){ return this.root.querySelectorAll("*[name="+elName+"]"); };
+        getElementsByAttribute(attrName){ return this.root.querySelectorAll("*["+attrName+"]") };
         //
         show(){ this.style.display = "flex"; };
         hide(){ this.style.display = "none"; };
@@ -124,8 +131,8 @@
         // stuff after disconnect, override in custom element
         deconstruct(){};
         // css injection into shadowdom
-        // if we don't, shadowdom has no style
         css_inject(){
+            // like this, calling render() is... ok?
             if (!this.hasAttribute('override')){
                 for (let _idx=0;_idx<component.stylesheets.length;_idx++){
                     let el_style = document.createElement("style");
@@ -133,13 +140,14 @@
                     this._parent.appendChild(el_style);
                 };
             };
-        }
+        };
+        // ...better, odd behavior on iOS<12 but it's being polyfilled
         render(){
             //
             let _has_innerhtml = (this.innerHTML != "");
             let _has_template = (this.template() != "");
             let _root_obj = null;
-            //
+            // avoid shadowDOM?
             if (!this.hasAttribute('override')){
                 if (_has_template){
                     let _root_obj_jst = doT.template(this.template());
@@ -149,7 +157,7 @@
                         _root_obj.appendChild(document.createElement("slot"));
                     };
                 } else {
-                    /* with css injection, should there always be a slot? for now, yes */
+                    // with css injection, should there always be a slot? for now, yes
                     _root_obj = document.createElement("slot");
                 };
                 //
@@ -170,9 +178,9 @@
             } else {
                 //
                 let _firstChild = this.firstElementChild;
+                // this._parent = _firstChild;
                 this.root = _firstChild;
             };
-            //
             //
             // hook in events, can be overridden in postRender
             if (this.onClick){
@@ -183,26 +191,58 @@
         };
         //
         template(){ return '' };
-        /* In react this changes the component.state, one day we'll do the same */
+        /* In react this changes the component.state, then pushes a ref to component.render to the mcp. push a func ref along with the state change? */
         setState(){};
-        /*
-        */
+        //
     };
     component.register('nine-html', component.html);
     //
 
     // button
     component.button = class extends component.html {
+        icon(iconName){
+            this.innerHTML = nine.util.global_get(iconName);
+            let _svg = this.querySelector('svg');
+            if (_svg.classList.contains('fa-w-auto')){
+                _svg.classList.toggle('fa-w-auto');
+            };
+        }
         postRender(){
             if (this.hasAttribute('icon')){
-                this.innerHTML = nine.util.global_get(this.getAttribute('icon'));
-            }
+                this.icon(this.getAttribute('icon'));
+            };
             if (this.hasAttribute('href')){
                 let _href = document.createElement('a');
                 _href.setAttribute('href',this.getAttribute('href'));
                 _href.innerHTML = this.root.innerHTML;
                 this.root.innerHTML = "";
                 this.root.appendChild(_href);
+            };
+            this.btn = this._parent.querySelector('.nine-button');
+            var self = this;
+            // bad monkeypatch for touch devices
+            if ('ontouchstart' in window){
+                self.btn.ontouchstart = function(){
+                    if (!self.btn.classList.contains('nine-button-active')){
+                        self.btn.classList.toggle('nine-button-active');
+                    };
+                };
+                self.btn.ontouchend = function(){
+                    if (self.btn.classList.contains('nine-button-active')){
+                        self.btn.classList.toggle('nine-button-active');
+                    };
+                };
+            } else {
+                self.btn.onmousedown = function(){
+                    if (!self.btn.classList.contains('nine-button-active')){
+                        self.btn.classList.toggle('nine-button-active');
+                    };
+                };
+                self.btn.onmouseup = function(){
+                    if (self.btn.classList.contains('nine-button-active')){
+                        self.btn.classList.toggle('nine-button-active');
+                    };
+                };
             };
         }
         template(){
@@ -227,8 +267,18 @@
     // file input
     component.file = class extends component.html {
         postRender(){
-            this.file = this.getElementById(this.id+'-file');
-            this.label = this.getElementById(this.id+'-filename');
+            let self = this;
+            this.label = this.getById(this.id+'-filename');
+            this.file = this.getById(this.id+'-file');
+            this.fileName = null;
+            this.fileData = null;
+            this.file.oninput = function(e){
+                let _filename = self.file.files[0].name;
+                self.fileName = _filename;
+                self.label.innerText = _filename;
+                component.spinner.open('file_load');
+                self.fileLoad();
+            };
         };
         template(){
             return `
@@ -241,14 +291,18 @@
             `;
         };
         //
-        b64(callbackFunc){
-            var freader = new FileReader();
+        fileLoad(callbackFunc){
+            let self = this;
+            let freader = new FileReader();
+            // fire event when file loaded into memory
             freader.addEventListener("load", function () {
-                // convert image file to base64 string
-                callbackFunc(freader.result);
-                component.spinner.close("fileReader");
+                self.fileData = freader.result;
+                if (callbackFunc){
+                    callbackFunc(self.fileData);
+                }
+                component.spinner.close('file_load');
             }, false);
-            component.spinner.open("fielReader");
+            // convert image file to base64 URL string
             freader.readAsDataURL(this.file.files[0]);
         }
         //
@@ -274,6 +328,7 @@
                 this._parent.querySelector('.nine-navigate-body').classList.toggle('nine-navigate-body-plus');
             };
             this.style.visibility = "visible";
+            this.body = this._parent.querySelector('.nine-navigate-body');
             this.view = this._parent.querySelector('.nine-navigate-view');
             window.nineView = this.view;
         };
@@ -354,9 +409,10 @@
             this.panel_body = this.root.querySelector('.nine-panel-'+this.props.type+'-body')
             this.panel_screen.onmouseup = function(e){ self.open(); };
             this.panel_body.onmouseup = function(e){ e.preventDefault(); };
-            // since position:fixed, we have to move relative to the parent,we assume it's always in a nine-vanigate-body
-            let __parent = self.parentElement._parent.querySelector('.nine-navigate-body');
+            // since position:fixed, we have to move relative to the parent,we assume it's always in a nine-navigate-body
+            // happens in the function because of back compat issues
             let __resize = function(){
+                let __parent = self.parentElement.body;
                 self.style.top = __parent.offsetTop+"px";
                 self.style.height = __parent.offsetHeight+"px";
                 self.style.width = __parent.offsetWidth+"px";
@@ -398,18 +454,20 @@
         open(){
             this.resize();
             if (this.classList.contains('nine-panel-'+this.props.type+'-open')){
-                this.onclose();
+                if (this.onclose){
+                    this.onclose();
+                };
             };
             this.classList.toggle('nine-panel-'+this.props.type+'-open');
             this.panel.classList.toggle('nine-panel-'+this.props.type+'-open');
             this.panel_screen.classList.toggle('nine-panel-'+this.props.type+'-screen-open');
             this.panel_body.classList.toggle('nine-panel-'+this.props.type+'-body-open');
             if (this.classList.contains('nine-panel-'+this.props.type+'-open')){
-                this.onopen();
+                if (this.onopen){
+                    this.onopen();
+                }
             };
         };
-        onopen(){};
-        onclose(){};
     };
     // load scheme handler in router
     if ('router' in nine){
@@ -482,7 +540,7 @@
             }
         };
         //
-        // this isn't so great..
+        // this isn't so great, shouldn't be using innerHTML like this
         static create(_name,_body){
             let elObj = document.createElement('nine-popup');
             elObj.setAttribute('name',_name);
@@ -499,7 +557,7 @@
                 component.popups[_key].close();
             });
         };
-        // this doesn't mesh with current logic, but we could make it work
+        // does this work?
         static open(popupName){
             if(popupName.indexOf('://')>-1){ popupName = popupName.slice(popupName.indexOf('://')+3) }
             if (popupName in component.popups){
@@ -514,8 +572,6 @@
         //
         close(){
             component.popup.close(this.props.name);
-            // this.remove();
-            // delete component.popups[this.props.name];
         };
     };
     // load scheme handler in router
@@ -526,7 +582,6 @@
     //
 
     // spinner
-    // loadingio made this very easy
     component.spinners = {};
     component.spinner = class extends component.html {
         postRender(){
@@ -549,7 +604,7 @@
                 component.spinners[_key].close();
             });
         };
-        // this doesn't mesh with current logic, but we could make it work
+        //
         static open(spinnerName){
             if(spinnerName.indexOf('://')>-1){ spinnerName = spinnerName.slice(spinnerName.indexOf('://')+3) }
             if (spinnerName in component.spinners){
@@ -587,13 +642,22 @@
     component.select = class extends component.html {
         configure(){
             // bootstrap options that are in the tag
-            this._parent.addEventListener( 'slotchange', ev => {      
-                let node = this.querySelector( 'option' )
-                node && this.select.appendChild( node )
+            let self = this;
+
+            /* slotchange event doesn't seem consistent across browsers....
+            this._parent.addEventListener( 'slotchange', function(ev){      
+                console.log('slotchange');
+                let node = self.querySelector( 'option' )
+                node && self.select.appendChild( node )
             });
+            */
         }
         postRender(){
             this.select = this._parent.querySelector('select');
+            // monkeypatch for slotchange event inconsistency
+            for (let _node of this.querySelectorAll('option')){
+                this.select.appendChild(_node);
+            };
         };
         //
         get value(){
@@ -640,6 +704,7 @@
     
     // date select
     // complex copmponent, uses other components
+    // has special sauce for only current use case
     component.dateselect = class extends component.html {
         configure(){
             //
@@ -652,11 +717,22 @@
             let _currentdate = new Date();
             // helpers
             let _savedate = function(){
-                nine.storage.local.set(self.props.name,self.year.value+'-'+('00'+self.month.value).slice(-2)+'-'+('00'+self.day.value).slice(-2)+'T00:00:00.000Z');
+                let _date_str = self.year.value+'-'+(self.month.value).slice(-2)+'-'+(self.day.value).slice(-2)
+                nine.storage.local.set(self.props.name,_date_str);
+                // special sauce, best make this generic
+                if (self.querySelector('p[id=date_display]')){
+                    self.querySelector('p[id=date_display]').innerText = daycount(self.props.name);
+                };
             };
+            let _year_change = function(){
+                _month_change({target:self.month.select});
+                _savedate();
+            }
             let _month_change = function(event){
                 // if no value...
                 if (!event.target.value){ event.target.value=0 };
+                // try to save the date
+                let _old_day = self.day.select.value;
                 // clear the board
                 self.day.select.innerHTML = "";
                 // how many days
@@ -669,19 +745,21 @@
                 for (let _i=1;_i<_month_length+1;_i++){
                     self.day.addOption(_i.toString(),_i);
                 };
+                if (self.day.select.innerHTML.indexOf('value="'+_old_day+'"')>-1){
+                    self.day.select.value = _old_day
+                }
                 // save?
                 if (!event.nosave){
                     _savedate();
                 };
             }
             // years
-            // this.props.startyear
-            let _currentyear = _currentdate.getUTCFullYear();
+            let _currentyear = _currentdate.getFullYear();
             let _startyear = null;
             if (this.props.startyear){
                 _startyear = Number(this.props.startyear);
             } else {
-                _startyear = 1970;
+                _startyear = 1970;  // unix epoch year
             };
             for (let _i=_currentyear;_i>_startyear-1;_i--){
                 this.year.addOption(_i.toString(),_i);
@@ -694,23 +772,24 @@
             // load
             _month_change({target:this.month.select,nosave:1})
             // load from loacalstorage or the current date
-            // this.props.name
             let _saveddate = null;
             if (nine.storage.local.has(this.props.name)){
-                console.log(this.props.name);
-                console.log(nine.storage.local.get(this.props.name));
-                _saveddate = new Date(nine.storage.local.get(this.props.name));
+                _saveddate = nine.storage.local.get(this.props.name);
+                console.log(_saveddate);
+                let _splitdate = _saveddate.split('-');
+                this.year.value = _splitdate[0];
+                this.month.value = _splitdate[1];
+                this.day.value = _splitdate[2];
             } else {
                 _saveddate = new Date();
+                this.year.value = _saveddate.getFullYear();
+                this.month.value = _saveddate.getMonth()+1;
+                this.day.value = _saveddate.getDate();
             };
-            console.log(_saveddate)
-            this.year.value = _saveddate.getUTCFullYear();
-            this.month.value = _saveddate.getUTCMonth()+1;
-            this.day.value = _saveddate.getUTCDate();
             // event handlers
             // we *might* be oversaving
-            this.year.select.addEventListener('input', _savedate );
-            this.year.select.addEventListener('change', _savedate );
+            this.year.select.addEventListener('input', _year_change );
+            this.year.select.addEventListener('change', _year_change );
             this.month.select.addEventListener('input', _month_change );
             this.month.select.addEventListener('change', _month_change );
             this.day.select.addEventListener('input', _savedate );
@@ -727,6 +806,9 @@
                 </li>
                 <li>
                     <nine-select label="Day"></nine-select>
+                </li>
+                <li>
+                    <slot></slot>
                 </li>
             </nine-list>
             `;

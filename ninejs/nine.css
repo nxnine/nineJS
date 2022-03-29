@@ -1,6 +1,5 @@
 /*
     nine.js CSS
-    I don't write good CSS
 */
 
 /* Helper Classes */
@@ -36,7 +35,8 @@
     --fontsize-medium: 2.5vh;
     --fontsize-small: 2vh;
     --fontsize-exsmall: 1.75vh;
-    --fontfamily: monospace;
+    /* --fontfamily: monospace; */
+    --fontfamily: 'IBM Plex Sans';
 }
 .color-theme {
     --nine-color: var(--olive);
@@ -106,12 +106,20 @@
     --nine-bgColor: var(--70grey);
     --nine-fontColor: var(--white);
     --nine-lineHeight: 7vh;
+    --nine-lineHeight-small: 3vh;
+    /**/
+    --nine-list-bgColor: var(--whiteshadow);
+    --nine-list-borderColor: var(--black);
+    /**/
+    --nine-panel-bgColor:var(--grey);
     /**/
     --nine-button-bgColor: var(--green);
     --nine-button-fontColor: var(--white);
     --nine-button-borderColor: var(--green-shade);
     --nine-button-clickColor: var(--green);
     /**/
+    --nine-nav-head-fontColor:var(--white);
+    --nine-nav-foot-fontColor:var(--white);
     --nine-nav-ctl: var(--grey);
     --nine-nav-head: var(--green3);
     --nine-nav-body: var(--nine-bgColor);
@@ -170,7 +178,7 @@ body {
 .nodisplay { display:none !important; }
 .nopad { padding: 0 !important; }
 .nowrap { white-space: nowrap !important; }
-.wrap { white-space:normal !important; }
+.wraps { white-space:normal !important; }
 
 .hiddenDiv {
     position: absolute;
@@ -186,8 +194,11 @@ body {
 
 /* FontAwesome compat */
 .svg-inline--fa{display:inline-block;font-size:inherit;height:1em;overflow:visible;vertical-align:-.125em}
-.fa-w-14{width:.875em}
-.fa-w-16{width:1em}
+.fa-w-auto{width:auto;height:auto;}
+.fa-h-100{width:auto;height:100%;}
+.fa-w-100{width:100%;height:auto;}
+.fa-w-14{width:.875em;height:auto;}
+.fa-w-16{width:1em;height:auto;}
 /**/
 
 /**/
@@ -197,6 +208,7 @@ body {
     left: 0;
     width: 100vw;
     height: 100%;
+    background-color: var(--nine-bgColor);
     /* in mobile browser vh measures with address bar hidden, for our use case 100% is better */
     /* https://stackoverflow.com/questions/37112218/css3-100vh-not-constant-in-mobile-browser */
     /* height: 100vh; */
@@ -226,8 +238,15 @@ nine-html {
 /**/
 
 /* Button */
+nine-button {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex:auto;
+}
 .nine-button {
-    /* position: absolute; */
+    position: relative;
     background-color: var(--nine-button-bgColor);
     color: var(--nine-button-fontColor);
     width: 100%;
@@ -239,8 +258,8 @@ nine-html {
     vertical-align: middle;
     border: 1px solid var(--nine-button-borderColor);
 }
-.nine-button a {
-    position: absolute;
+.nine-button > a {
+    position: relative;
     top: 0;
     left: 0;
     width: 100%;
@@ -255,7 +274,7 @@ nine-html {
     text-decoration: none;
     color: var(--nine-button-fontColor);
 }
-.nine-button div {
+.nine-button > a > div {
     position: absolute;
     top: 0;
     width: 100%;
@@ -263,14 +282,15 @@ nine-html {
     background-color: transparent;
 }
 /* .nine-button:hover:active { */
-.nine-button:active {
+/* .nine-button:active { */
+.nine-button-active {    
     background-color: var(--nine-button-clickColor)
 }
 /**/
 
 /* File Upload*/
 nine-file {
-    position: absolute;
+    position: relative;
     width: 92%;
     height: 100%;
 }
@@ -295,12 +315,12 @@ nine-file {
     vertical-align: middle;
     position: absolute;
 }
-.nine-file-upload-label input[type="file"] {
+.nine-file-upload-label > input[type="file"] {
     position:absolute;
     display: none;
     top: -1000px;
 }
-.nine-file-upload-label div {
+.nine-file-upload-label > div {
     font-size: 10vb;
     position: absolute;
     padding: 0;
@@ -350,21 +370,35 @@ nine-navigate {
     width: 100%;
     height: 100%;
     display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    vertical-align: middle;
+    color: var(--nine-nav-head-fontColor);
 }
-.nine-navigate-head-bar div {
+.nine-navigate-head-bar > div[type=title] > svg {
     position: relative;
+    height: 100% !important;
+    width: auto !important;
+}
+.nine-navigate-head-bar > div {
+    position: relative;
+    height: 100%;
     flex: 0 0 15vw;
+    display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     vertical-align: middle;
 }
-.nine-navigate-head-bar div[type=title] {
+.nine-navigate-head-bar > div[type=title] {
     flex: 6;
     display: flex;
     justify-content: left;
     text-align: left;
     padding-left: 4vw;
+    /* height: var(--nine-lineHeight); */
+    /* max-height: var(--nine-lineHeight); */
 }
 .nine-navigate .nine-navigate-body {
     position: relative;
@@ -387,21 +421,32 @@ nine-navigate {
     height: 100%;
     display: flex;
     font-size: var(--nine-nav-footer-fontSize);
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    vertical-align: middle;
+    color: var(--nine-nav-foot-fontColor);
 }
-.nine-navigate-foot-bar div {
+.nine-navigate-foot-bar > div {
     position: relative;
+    height: 100%;
     flex: 0 0 15vw;
+    display: flex;
     align-items: center;
     justify-content: center;
     text-align: center;
     vertical-align: middle;
 }
-.nine-navigate-foot-bar div[type=notice] {
+.nine-navigate-foot-bar > div[type=notice] {
     flex: 6;
     display: flex;
     justify-content: right;
     text-align: right;
     padding-right: 4vw;
+    height: var(--nine-lineHeight-small);
+    max-height: var(--nine-lineHeight-small);
+    /* overflow-x:scroll; */
+    /* white-space: nowrap; */
 }
 /**/
 .nine-navigate .nine-navigate-body .nine-navigate-view {
@@ -471,7 +516,7 @@ nine-panel {
     right: -90%;
     width: 80%;
     height: 100%;
-    background-color: var(--grey);
+    background-color: var(--nine-panel-bgColor);
     overflow-y: scroll;
     transition: all .3s ease-out;
 }
@@ -529,7 +574,7 @@ outline: 1px solid var(--nine-nav-scroll-outline);
     left: -90%;
     width: 80%;
     height: 100%;
-    background-color: var(--grey);
+    background-color: var(--nine-panel-bgColor);
     overflow-y: scroll;
     transition: all .3s ease-out;
 }
@@ -565,31 +610,33 @@ nine-list {
     /* border: 1px solid var(--black); */
 }
 /**/
-nine-list li {
+nine-list > li {
     position: relative;
-    border-top: 1px solid var(--black);
+    border-top: 1px solid var(--nine-list-borderColor);
     padding-left: 4%;
     /* padding-left: 4vw; */
     /* display: block; */
     display: flex;
+    /* height: var(--nine-lineHeight); */
     min-height: var(--nine-lineHeight);
     vertical-align: middle;
     align-items: center;
-    background-color: var(--whiteshadow);
+    background-color: var(--nine-list-bgColor);
     border-radius: var(--nine-border-radius-size);
     /* display: block;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap; */
 }
-nine-list.list-settings li {
+nine-list.list-settings > li {
 
     padding-bottom: 1%;
+    border-radius: 0;
 }
-nine-list li:first-child {
+nine-list > li:first-child {
     border-top: 0px;
 }
-nine-list li > a {
+nine-list > li > a {
     display: block;
     width: 90%;
     height: 100%;
@@ -601,23 +648,30 @@ nine-list li > a {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
-nine-list li > a::after {
+nine-list > li > a::after {
     content: '>';
     position: absolute;
     right: 3vw;
 }
-nine-list li.list-spacer {
+nine-list > li.list-spacer {
     position: relative;
     border-top: 0;
     padding-left: 4%;
-    /* padding-left: 4vw; */
-    /* display: block; */
     display: flex;
     min-height: var(--nine-lineHeight);
     vertical-align: middle;
     align-items: center;
     background-color: transparent;
-    /* border-radius: var(--nine-border-radius-size); */
+}
+nine-list > li.list-button {
+    position: relative;
+    border-top: 0;
+    padding-left: 4%;
+    display: flex;
+    min-height: var(--nine-lineHeight);
+    vertical-align: middle;
+    align-items: center;
+    background-color: var(--nine-button-bgColor);
 }
 /**/
 
@@ -676,7 +730,6 @@ nine-select {
     position: relative;
     top: 0;
     width: 96%;
-    /* width: 100%; */
     height: 100%;
 }
 .nine-select {
@@ -700,7 +753,7 @@ nine-select {
     position: absolute;
     right: 3vw;
 } */
-.nine-select-label div {
+.nine-select-label > div {
     /* position: absolute;
     top: 0; */
     position: relative;
@@ -724,7 +777,7 @@ nine-select {
     line-height: inherit;
     outline: none;
 }
-.nine-select-label select {
+.nine-select-label > select {
     /* position: absolute;
     bottom: 0; */
     position: relative;
@@ -737,7 +790,7 @@ nine-select {
     /* display: inline-block; */
     color: var(--nine-fontColor);
 }
-.nine-select-label select option {
+.nine-select-label > select > option {
     background-color: var(--shadow);
 }
 /**/
@@ -771,7 +824,7 @@ nine-accordion {
 /* nine-accordion * {
     visibility: hidden;
 } */
-nine-accordion div[type=header] {
+nine-accordion > div[type=header] {
     position: relative;
     top: 0;
     left: 0;
@@ -790,7 +843,7 @@ nine-accordion div[type=header] {
     white-space: nowrap;
     min-height: var(--nine-lineHeight);
 }
-nine-accordion div[type=header] > p {
+nine-accordion > div[type=header] > p {
     position: relative;
     width: 85%;
     display: block;

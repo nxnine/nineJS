@@ -1,7 +1,4 @@
-/*
-    pdfviewer.css
-    I still don't write good CSS
-*/
+/**/
 nine-pdfview {}
 .nine-pdf-next {
     position: fixed;
@@ -44,6 +41,7 @@ nine-pdfview {}
     /* display: flex; */
     /* min-height: var(--nine-lineHeight); */
     display: block;
+    vertical-align: middle;
     align-items: center;
     margin-left: auto;
     margin-right: auto;

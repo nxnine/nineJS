@@ -1,29 +1,30 @@
 /*
-    pdf.js by @nxnine
-    PDFJS based pdf viewer
-    this was built on top of the sample that came with pdfjs
-    added bookmark/TOC processing
-    added support for touch events
-    messy, rough, and not much more than a proof of concept
-    but it works :]
+    pdfviewer.js by @nxnine
+    requires:
+        nine.js
+        icon.js
+        component.js
+        pdf.js
+
+    pdf viewer component, experimental, built from pdf.js example
 */
 
-// straight from the sample
+// Loaded via <script> tag, create shortcut to access PDF.js exports.
 var pdfjsLib = window['pdfjs-dist/build/pdf'];
-pdfjsLib.GlobalWorkerOptions.workerSrc = './ninejs/pdfjs/pdf.worker.js';
+// The workerSrc property shall be specified.
+pdfjsLib.GlobalWorkerOptions.workerSrc = './ninejs/pdfjs/build/pdf.worker.js';
 //
-
-//
+// var DEFAULT_SCALE_DELTA = 1.1;
 var DEFAULT_SCALE_DELTA = 1.01;
 var MAX_SCALE = 10;
 var MIN_SCALE = 0.1
-//
-// pdfView component
+// select
 nine.component.pdfview = class extends nine.component.html {
     configure(){
         //
     };
     postRender(){
+        // this.select = this._parent.querySelector('select');
         this.url = this.props.file;
         this.doc = null;
         this.pageCount = 0;
@@ -62,9 +63,14 @@ nine.component.pdfview = class extends nine.component.html {
     };
     //
     touch_setup(){
+        // console.log('pdfViewer','touch_setup');
         var self = this;
         //
         var touchWatch = new nine.util.touchObserver(this.page);
+        // var touchWatch = new nine.util.touchObserver(document.body);
+        // document.body.addEventListener('pinchZoomOut',function(){self.decreaseScale()});
+        // document.body.addEventListener('pinchZoomIn',function(){self.increaseScale()});
+        //
         this.page.addEventListener('pinchZoomOut',function(ev){
             nine.util.commands([function(){self.decreaseScale(ev.detail);}]);
         });
@@ -113,6 +119,7 @@ nine.component.pdfview = class extends nine.component.html {
             let dest = _item.dest[0];
             this.outline.push([_level,title,dest])
             this.toc_process(_level+1,_item.items)
+            // console.log(dest);
         };
     };
     toc_draw(){
@@ -126,6 +133,7 @@ nine.component.pdfview = class extends nine.component.html {
                 let _level = _item[0];
                 let title = _item[1];
                 let pageIndex = _item[3];
+                // console.log(title+' :: '+pageIndex);
                 self.pairs.push({ title: title, pageNumber:  pageIndex + 1 });
                 if (panelEl && panelList){
                     //
@@ -145,11 +153,14 @@ nine.component.pdfview = class extends nine.component.html {
     //
     load_file(){
         let self = this;
+        // console.log('load_file.start');
         nine.component.spinner.open('pdfViewer');
         pdfjsLib.getDocument(self.url).promise.then(function(pdfDoc_) {
+            // console.log('load_file.getDocument.start');
             self.doc = pdfDoc_;
             self.pageCount = self.doc.numPages;
-            // TOC
+            // TOC ?
+            // Here we go!
             self.pairs = [];
             let panelEl = null;
             let panelList = null;
@@ -159,14 +170,20 @@ nine.component.pdfview = class extends nine.component.html {
             };
             // Get the tree outline
             self.doc.getOutline().then(function(outline) {
+                // console.log('load_file.getDocument.getOutline.start');
                 if (outline) {
+                    // console.log(outline);
                     self.outline = [];
                     self.toc_process(0,outline);
+                    // console.log(self.outline);
                     for (let i = 0, p = Promise.resolve(); i <= self.outline.length; i++) {
                         if (i<self.outline.length){
                             let _item = self.outline[i];
                             let dest = _item[2];
+                            // console.log(dest);
                             p = p.then(() => self.doc.getPageIndex(dest).then(function(pageIndex){
+                                                // console.log('load_file.getDocument.getOutline.getPageIndex.start');
+                                                // console.log('pageIndex');
                                                 self.outline[i].push(pageIndex+1);
                                             })
                             );
@@ -175,6 +192,8 @@ nine.component.pdfview = class extends nine.component.html {
                         }
                     }
                 };
+                // console.log(pairs);
+                // console.log('load_file.getDocument.getOutline.end');
             }).finally(function(){
                 nine.component.spinner.close('pdfViewer');
             });
@@ -183,7 +202,9 @@ nine.component.pdfview = class extends nine.component.html {
             self.renderPage(1);
             //
             self.pageCountEl.textContent = self.pageCount;
+            // console.log('load_file.getDocument.end');
         });
+        // console.log('load_file.end');
     };
     //
     increaseScale(event) {
@@ -196,7 +217,10 @@ nine.component.pdfview = class extends nine.component.html {
         newScale = Math.ceil(newScale * 10) / 10;
         newScale = Math.min(MAX_SCALE, newScale);
         } while (--steps > 0 && newScale <= MAX_SCALE);
+        // console.log('viewport.newscale: '+newScale);
+        // if (newScale==MAX_SCALE){console.log('MAX_SCALE')};
         this.queueRenderPage(this.pageNum,newScale);
+        // this.renderPage(this.pageNum,newScale);
     };
     
     decreaseScale(event) {
@@ -209,6 +233,7 @@ nine.component.pdfview = class extends nine.component.html {
         } while (--steps > 0 && newScale >= MIN_SCALE);
     
         this.queueRenderPage(this.pageNum,newScale);
+        // this.renderPage(this.pageNum,newScale);
     };
     //
     startPan(){
@@ -242,6 +267,7 @@ nine.component.pdfview = class extends nine.component.html {
     renderPage(num,_scale,_do_scale){
         let self = this;
         let _shift_scroll = 0;
+        // console.log('this.pageRendering = true')
         this.pageRendering = true;
         if ((_scale==null || _scale==undefined) && (num==null || num==undefined)){
             let _queue_page = this.renderQueue.shift();
@@ -276,11 +302,13 @@ nine.component.pdfview = class extends nine.component.html {
                 //
             // no page change, no scale change
             } else if (self.pageNum==num && _scale==self.viewport.scale) {
+                // console.log('::!page_change && !scale_change::');
                 return Promise.resolve().then(function(){
                     self.queueRenderNext();
                 });
             // no page change, scale change
             } else {
+                console.log('::!page_change && scale_change::');
                 let _old_scale = self.viewport.scale;
                 if (_old_scale < _scale){ _shift_scroll=2 } else if (_old_scale > _scale){ _shift_scroll=1 };
 
@@ -302,9 +330,9 @@ nine.component.pdfview = class extends nine.component.html {
         //
         //
     };
-    // this was for testing
     drawDot(){
         var self = this;
+        console.log('drawDot()')
         if (self.ctx){
             let _page_centerX = (self.page.scrollLeft+(self.page.scrollLeft+self.page.clientWidth))/2;
             let _page_centerY = (self.page.scrollTop+(self.page.scrollTop+self.page.clientHeight))/2
@@ -353,8 +381,8 @@ nine.component.pdfview = class extends nine.component.html {
         //
     }
     canvasScale(forceRender){
-        this.canvas.height = this.viewport.height+this._height_unit;
-        this.canvas.width = this.viewport.width+this._width_unit;
+        this.canvas.height = this.viewport.height;//+this._height_unit;
+        this.canvas.width = this.viewport.width;//+this._width_unit;
         //
         if (forceRender){
             this.__render();
@@ -364,7 +392,9 @@ nine.component.pdfview = class extends nine.component.html {
     * If another page rendering in progress, waits until the rendering is
     * finised. Otherwise, executes rendering immediately.
     */
+    // MAKE THIS INTO A REAL QUEUE
     queueRenderPage() {
+        // console.log(JSON.stringify(this.renderQueue));
         let _args = Array.from(arguments);
         this.renderQueue.push([_args[0],_args[1],_args[2]]);
         if (!this.pageRendering) {
@@ -372,12 +402,16 @@ nine.component.pdfview = class extends nine.component.html {
         }
     };
     queueRenderNext(){
+        // console.log('this.pageRendering = false')
         this.pageRendering = false;
         if (this.renderQueue.length>0){
             this.renderPage();
         }
     }
-    resetPage(){
+    /**
+    * Displays previous page.
+    */
+   resetPage(){
         //
         var self = this;
         if (this.page!=undefined){
@@ -386,14 +420,13 @@ nine.component.pdfview = class extends nine.component.html {
         };
         //
         this.queueRenderPage(this.pageNum,MIN_SCALE,true)
-    }
-    /**
-    * Displays previous page.
-    */
+   }
     onPrevPage() {
+        // console.log('prev');
         if (this.pageNum <= 1) {
             return;
         }
+        // this.pageNum--;
         this.resetPage();
         this.queueRenderPage(this.pageNum-1);
     };
@@ -401,17 +434,24 @@ nine.component.pdfview = class extends nine.component.html {
     * Displays next page.
     */
     onNextPage() {
+        // console.log('next:');
         if (this.pageNum >= this.pageCount) {
             return;
         }
+        // this.pageNum++;
         this.resetPage();
         this.queueRenderPage(this.pageNum+1);
+        // console.log(':next');
     };
 };
+//
+
 //
 function __route_pdf_view(_pdfview_uri){
     if(_pdfview_uri.indexOf('://')>-1){ _pdfview_uri = _pdfview_uri.slice(_pdfview_uri.indexOf('://')+3) }
     let _pdfview_id_page = _pdfview_uri.split('/');
+    // console.log(_pdfview_id_page[0])
+    // console.log(_pdfview_id_page[1])
     let _pdfview = document.getElementById(_pdfview_id_page[0]);
     _pdfview.resetPage();
     _pdfview.queueRenderPage(Number(_pdfview_id_page[1]));

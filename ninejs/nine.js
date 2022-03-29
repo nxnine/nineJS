@@ -1,29 +1,33 @@
 /*
     nine.js v0.3 by @nxnine
-    needed to refactor UI drawing logic for mobile and accidentally made a framework
-    the only goal is to stay vanilla javascript/cordova compliant and simple
+    
+    needed to refactor UI drawing logic and accidentally made a framework
+    the only goal is to stay vanilla javascript/cordova compliant and have fun
 
-    consists of:
-    date.js - date manipulation
-    hash.js - CRC32, MD5
-    hash_sha256.js - forge SHA256
-    emit.js - event emitters
-    icons.js - SVG icons
-    icons_fa.js - Font Awesome Free 5.15.0 icons
-    request.js - XMLHTTPRequest originally from Framework7, tweaked and added an internal cache mechanism
-    snowflake.js - Twitter Snowflake implementation
-    doT.js - doT JavaScript Templates
-    router.js - SPA Router
-    component.js - WebComponent based components
-    pdfviewer.js - PDFJS based pdf viewer
-
-    did my best to place attribution notices where they should be.
-    "nineJS" is taken by a few other projects, this is not any of those.
-    unapologetically badly commented.
+    history:
+        v0.0 :
+            bolted onto an element in the DOM
+            createElement madness
+        v0.1 :
+            bolted onto an element in the DOM
+            doT templates and html injection
+        v0.2 :
+            utilizes Web Components ( https://developer.mozilla.org/en-US/docs/Web/Web_Components )
+            primitive SPA router
+            runtime script loading
+        v0.3
+            // forgot to update this, things probably missing
+            SVG icons based on FontAwesome v5
+            PDF viewer
+            timezone date objects based on feature detection
+            font resources
+            optional polyfills for attempting back compatibility
 */
+
 (function () {
     //
     var nx = {}, _globals;
+    var _cache_bust = true;
     //
 
     // logger
@@ -39,7 +43,26 @@
     var _local_console_warn = console.warn;
     var _local_console_error = console.error;
     function logHeader(_timestamp,_prefix,_m){ return '['+_timestamp+']('+_prefix+')  ' };
-    class Logger extends Function {
+    // console.log with timestamps
+    class Logger {
+        constructor(_prefix){
+            if (!_prefix){
+                _prefix = 'LOG';
+            }
+            this.prefix = _prefix;
+        };
+        get log(){
+            return console.log.bind(window.console,logHeader(logTimestamp(),this.prefix));
+        };
+        get warn(){
+            return console.warn.bind(window.console,logHeader(logTimestamp(),this.prefix));
+        };
+        get error(){
+            return console.error.bind(window.console,logHeader(logTimestamp(),this.prefix));
+        };
+    }
+    // experimental logger
+    class externalLogger extends Function {
         constructor(_prefix) {
             super('...args', 'return this.__self__.__call__(...args)')
             var self = this.bind(this);
@@ -50,6 +73,7 @@
             }
             self.prefix = _prefix;
             self.handlers = [];
+            // _local_console_log.apply(console,[typeof __ninejs_console_log]);
             self.console = typeof __ninejs_console_log!='undefined' ? __ninejs_console_log : true;
             //
             return self
@@ -82,6 +106,7 @@
             if (_type.toLowerCase()=='warn'){ _console_func = _local_console_warn; };
             if (_type.toLowerCase()=='error'){ _console_func = _local_console_error; };
             if (this.console){
+                // _console_func.apply(console,[_log_header+_msg]);
                 _console_func.apply(console,[_log_header]);
                 _console_func.apply(console,[_msg]);
             };
@@ -91,10 +116,8 @@
             };
         };
     };
-    nx.log = new Logger();
-    console.log = function(){ nx.log(...arguments); };
-    console.warn = function(){ nx.log('WARN',...arguments); }
-    console.error = function(){ nx.log('ERROR',...arguments); }
+    var _debug = new Logger();
+    nx.debug = _debug;
     //
 
     //
@@ -194,7 +217,17 @@
         if (_loader_array.length>0){
             try {
                 let _loader_array_file = _loader_array.shift();
-                if (_loader_array_file.endsWith('.js')){
+                if (_loader_array_file.indexOf('??')>0){
+                    let _loader_opts = _loader_array_file.split('??');
+                    let _loader_files = _loader_opts[1].split(':');
+                    if (global_get(_loader_opts[0])!=null){
+                        _loader_array_file = _loader_files[0];
+                    } else {
+                        _loader_array_file = _loader_files[1];
+                    }
+                };
+                if (_loader_array_file.indexOf('.js')>0){
+                    if (_cache_bust){_loader_array_file=_loader_array_file+'?ver='+Date.now()}
                     let scriptEl = document.createElement('script');
                     document.head.appendChild(scriptEl);
                     scriptEl.onload = _loader_array_process;
@@ -202,7 +235,8 @@
                     scriptEl.async = false;
                     scriptEl.src = _loader_array_file;
                 }
-                else if (_loader_array_file.endsWith('.css')){
+                else if (_loader_array_file.indexOf('.css')>0){
+                    if (_cache_bust){_loader_array_file=_loader_array_file+'?ver='+Date.now()}
                     let linkEl = document.createElement('link');
                     linkEl.type = 'text/css';
                     linkEl.rel = 'stylesheet';
@@ -239,10 +273,11 @@
 
     /*
         sequential command execution
+        this doesn't actually work
     */
     var _command_array = [];
     var _command_processing = false;
-    var _command_promise = Promise.resolve();
+    var _command_promise = Promise.resolve(); //null;
     function commands(command_array){
         let command_array_obj = null;
         _command_array.push(...command_array)
@@ -273,17 +308,111 @@
     };
     //
 
+    // leading zero padding - 64 zero max
+    var __64zero = '0000000000000000000000000000000000000000000000000000000000000000';
+    function zeroPad(_string,_pad){
+        return (__64zero+_string).slice(_pad*-1)
+    };
+    //
+
+    // test if passed object is a function
+    function isFunction(input){
+        return (
+            (typeof Function !== 'undefined' && input instanceof Function) ||
+            Object.prototype.toString.call(input) === '[object Function]'
+        );
+    };
+    //
+
+    // derived from textFit.js v2.3.1 by STRML (strml.github.io)
+    function textFit(els){
+        // Convert objects into array
+        if (typeof els.toArray === "function") { els = els.toArray(); };
+        // Support passing a single el
+        var elType = Object.prototype.toString.call(els);
+        if (elType !== '[object Array]' && elType !== '[object NodeList]' && elType !== '[object HTMLCollection]'){
+            els = [els];
+        }
+        // Process each el we've passed.
+        for(var i = 0; i < els.length; i++){
+            // remove repeated list comprehension
+            var elem = els[i];
+            // minimum padding + initial size
+            var nPad = 2;
+            var nSize = Math.min(elem.clientWidth, elem.clientHeight) - nPad;
+            elem.style.fontSize = nSize+"px";
+            if(elem.scrollWidth > elem.clientWidth || elem.scrollHeight > elem.clientHeight){
+                // binary tree search
+                var nHigh = nSize, nLow = 6;
+                var nMid = (nHigh+nLow)>>1;
+                while (nLow<=nHigh){
+                    nMid = (nHigh+nLow)>>1;
+                    elem.style.fontSize = nMid+"px";;
+                    if (elem.scrollWidth <= elem.clientWidth && elem.scrollHeight <= elem.clientHeight){
+                        nSize = nMid;
+                        nLow = nMid + 1;
+                    } else {
+                        nHigh = nMid - 1;
+                    };
+                };
+                elem.style.fontSize = (nSize - nPad)+"px";
+            };
+        };
+    };
+    // text fit if bigger than container
+    function textFitX(els){
+        // Convert objects into array
+        if (typeof els.toArray === "function") { els = els.toArray(); };
+        // Support passing a single el
+        var elType = Object.prototype.toString.call(els);
+        if (elType !== '[object Array]' && elType !== '[object NodeList]' && elType !== '[object HTMLCollection]'){
+            els = [els];
+        }
+        // Process each el we've passed.
+        for(var i = 0; i < els.length; i++){
+            // remove repeated list comprehension
+            var elem = els[i];
+            // minimum padding + initial size
+            var nPad = 2;
+            var nSize = Math.min(elem.clientWidth, elem.clientHeight) - nPad;
+            if(elem.scrollWidth > elem.clientWidth || elem.scrollHeight > elem.clientHeight){
+                elem.style.fontSize = nSize+"px";
+                // binary tree search
+                var nHigh = nSize, nLow = 6;
+                var nMid = (nHigh+nLow)>>1;
+                while (nLow<=nHigh){
+                    nMid = (nHigh+nLow)>>1;
+                    elem.style.fontSize = nMid+"px";;
+                    if (elem.scrollWidth <= elem.clientWidth && elem.scrollHeight <= elem.clientHeight){
+                        nSize = nMid;
+                        nLow = nMid + 1;
+                    } else {
+                        nHigh = nMid - 1;
+                    };
+                };
+                elem.style.fontSize = (nSize - nPad)+"px";
+            };
+        };
+    };
+    //
+
     //
     // util
     nx.util = {};
     nx.util.loader = loader;
     nx.util.scripts = loader.scripts;
     nx.util.commands = commands;
+    // nx.util.css = loader.css;
     nx.util.global = global;
     nx.util.global_get = global_get;
     //
+    nx.util.zeroPad = zeroPad;
+    nx.util.isFunction = isFunction;
+    nx.util.textFit = textFit;
+    nx.util.textFitX = textFitX;
+    //
 
-    // touch events
+    //
     class touchObserver {
         constructor(targetEl){
             var self = this;
@@ -405,22 +534,5 @@
     //
 }());
 
-// dependency load
-nine.util.scripts([
-    "./ninejs/date.js",
-    "./ninejs/hash.js",
-    "./ninejs/hash_sha256.js",
-    "./ninejs/emit.js",
-    "./ninejs/icons.js",
-    "./ninejs/icons_fa.js",
-    "./ninejs/request.js",
-    "./ninejs/snowflake.js",
-    "./ninejs/doT.js",
-    "./ninejs/router.js",
-    "./ninejs/nine.css",
-    "./ninejs/component.js",
-    "./ninejs/pdfviewer.css",
-    "./ninejs/pdfjs/pdf.js",
-    "./ninejs/pdfviewer.js"
-]);
-//
+// dependencies
+nine.util.scripts(['./ninejs/nine_load.js']);

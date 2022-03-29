@@ -1,5 +1,7 @@
 /*
-    simple emitters - no bells and only small whistles
+    emit.js by @nxnine
+    
+    event emitters - no bells and only small whistles
     borrows heavily from events.js
 */
 (function () {
@@ -17,9 +19,10 @@
             }
             return this;
         };
-        emit(data) {
+        emit(...data) {
             this.listeners.forEach(function(ftn) {
-                ftn.call(this, data);
+                // ftn.call(this, data);
+                ftn.apply(this,data);
             }, this);
         };
     };
@@ -55,7 +58,9 @@
             if (typeof listener === 'function') {
                 let _events = this.events;
                 if (!(type in _events)){ _events[type] = [] };
-                _events[type].push(listener);
+                if(!(listener in _events[type])){
+                    _events[type].push(listener);
+                };
             };
         };
         onceListener(type, listener){
@@ -82,10 +87,10 @@
             let _events = this.events;
             if (type in _events){
                 let _list = _events[type];
-                let _length = _list.length;
-                for (let i=0;i<_length;i++){
-                    let result = _events[type][i].apply(this,args);
-                };
+                //
+                _list.forEach(function(listener) {
+                    listener.apply(this,args);
+                }, this);
             };
         };
         //

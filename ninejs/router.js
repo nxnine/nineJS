@@ -1,5 +1,6 @@
 /*
-    SPA Router by @nxnine
+    router.js by @nxnine
+    
     inspired by https://github.com/vijitail/simple-javascript-router
 */
 (function () {
@@ -55,7 +56,15 @@
         return ['^'+_paths.join('')+__escape_string(_lastchar)+'$',_params];
     };
     //
-
+    /*
+        router
+            navigator
+                route information
+                loading data into view
+            observer
+                runs a MutationObserver watching for anchor elements
+                hijacks anchor element clicks
+    */
     // Navigator
     var navigator_routes = {};
     var _navigator_default_route = null;
@@ -68,7 +77,19 @@
         if (_state && add_state){
             history.pushState(_state,'');
         };
+        // } else {
+        //     history.replaceState({},'');
+        // };
     };
+    /*
+        scheme handler
+        panel:// would open a panel
+        popup:// opens a popup
+        pdf:// would navigate to a page in a pdfviewer
+        http:// & https:// would open a new browser tab/open in external browser
+        etc
+
+    */
     // because of our unique use case, we only check for cordova
     _use_system = false;
     if(window.hasOwnProperty("cordova")){
@@ -86,6 +107,9 @@
         'http': default_handler,
         'https': default_handler
     }
+    //
+
+    //
     function navigator_go(__href,_queries,add_state){
         //
         if (__href=='..'){
@@ -124,6 +148,7 @@
                         nine.request.get(_route.url).then(
                             function(successResult){
                                 let _data = successResult.data;
+                                // we have data, load into nine.view
                                 navigator_view(_data,{path:__href,query:_queries},add_state)
                                 if (_route.on){
                                     if (_route.on.pageAfterIn){
@@ -144,6 +169,13 @@
                         _route.async(_route_to,_route_from,resolve,reject);
                     }).then(
                         function(successResult){
+                            /*
+                            {
+                                type: 'popup',  // page, popup, panel; if panel, then we need a target...
+                                    template: ``,
+                                    context: {}
+                                }
+                                */
                                let _template = null;
                                if (_route.template){
                                 _template = doT.template(_route.template);
@@ -216,7 +248,7 @@
     };
     function navigator_popstate(event){
         // there's a problem here when navigating back to the first page
-        // we should do a history.replaceState
+        // need a special navigate_first that does a history.replaceState
         if (event.state==null && _navigator_default_route){
             navigator_go(_navigator_default_route,{},false);
         } else {
@@ -230,12 +262,10 @@
     };
     function navigator_init(){
         window.addEventListener('popstate', navigator_popstate);
-        // poison anchors
         document.querySelectorAll('a').forEach(navigator_addClick);
     };
 
     // Observer
-    // for poisoning future anchors
     var _observer = null;
     var _observer_params_default = { childList: true, subtree: true };
     function observer_watch(el,params){
@@ -252,7 +282,6 @@
                         navigator_addClick(_node);
                     } else if(_node.querySelectorAll) {
                         _node.querySelectorAll('a').forEach(function(__node){
-                            //
                             if (__node.hasAttribute && __node.nodeName.toLowerCase()==='a' && __node.hasAttribute('href')){
                                 navigator_addClick(__node);
                             }
