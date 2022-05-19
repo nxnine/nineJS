@@ -109,5 +109,5 @@
     timer.loop = loop;
     timer.countdown = countdown;
     timer.stopwatch = stopwatch;
-    nine.util.global(timer,'nine.timer');
+    nine.global.set(timer,'nine.timer');
 }());

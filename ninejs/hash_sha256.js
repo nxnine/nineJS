@@ -1003,5 +1003,5 @@
             forge.util.hasWideChar(str)?'utf8':undefined);
         return md.digest().toHex();
     };
-    nine.util.global(hash,'nine.hash');
+    nine.global.set(hash,'nine.hash');
 })();

@@ -230,5 +230,5 @@
     hash.crc32 = crc32;
     hash.md5 = md5;
     //
-    nine.util.global(hash,'nine.hash');
+    nine.global.set(hash,'nine.hash');
 }());

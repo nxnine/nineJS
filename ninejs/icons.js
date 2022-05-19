@@ -49,22 +49,24 @@
         };
         Object.keys(data_array).forEach(function(fa_icon_name){
             //
-            let fa_data = data_array[fa_icon_name];
-            let width = fa_data[0];
-            let height = fa_data[1];
-            let weight = fa_data[2];
-            let vectorData = _slicedToArray(fa_data.slice(4));
+            var fa_data = data_array[fa_icon_name];
+            var width = fa_data[0];
+            var height = fa_data[1];
+            var weight = fa_data[2];
+            var vectorData = _slicedToArray(fa_data.slice(4));
+            console.log(vectorData);
             if (typeof weight!='string'){weight='auto'};
             //
-            let svgEl = document.createElement("svg");
+            var svgEl = document.createElement("svg");
             svgEl.setAttribute("aria-hidden","true");
             svgEl.setAttribute("focusable","false");
+            svgEl.setAttribute("preserveAspectRatio","xMidYMin slice");
             svgEl.setAttribute("class","svg-inline--fa fa-w-"+weight);
             // svgEl.setAttribute("class","svg-inline--fa");
             svgEl.setAttribute("xmlns","http://www.w3.org/2000/svg");
             svgEl.setAttribute("viewBox","0 0 ".concat(width, " ").concat(height));
             //
-            let svgPath = document.createElement("path");
+            var svgPath = document.createElement("path");
             svgPath.setAttribute("fill","currentColor");
             svgPath.setAttribute("d",vectorData);
             //

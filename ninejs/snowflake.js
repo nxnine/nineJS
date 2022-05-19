@@ -125,21 +125,11 @@
             let b_time = (__snowflake_now - this.epoch).toString(2),
                 b_seq = this.seq.toString(2),
                 b_mid = this.machineid.toString(2);
-            // theoretically 135x faster than padStart, and 682x faster than the while loop
+            // theoretically 135x faster than padStart, and 682x faster than a while loop
             // https://www.measurethat.net/Benchmarks/Show/15736/0/binarystringpad
             b_seq = ('000000000000'+b_seq).slice(-12);
             b_mid = ('0000000000'+b_mid).slice(-10);
             b_time = ('00000000000000000000000000000000000000000'+b_time).slice(-41);
-            /*
-            b_seq = b_seq.padStart(12,'0');
-            b_mid = b_mid.padStart(10,'0');
-            b_time = b_time.padStart(41,'0');
-            //
-            while (b_seq.length < 12) b_seq = "0" + b_seq;
-            while (b_mid.length < 10) b_mid = "0" + b_mid;
-            while (b_time.length < 41) b_time = "0" + b_time;
-            if (b_time.length>41){ b_time = b_time.substring(b_time.length-41) }
-            */
             return '0' + b_time + b_mid + b_seq
         };
         generate_hex(){
@@ -164,5 +154,5 @@
     // exports
     _globals = (function(){ return this || (0,eval)("this"); }());
     _globals.SnowflakeID = SnowflakeID;
-    nine.util.global(SnowflakeID,'nine.util.snowflake')
+    nine.global.set(SnowflakeID,'nine.util.snowflake')
 }());

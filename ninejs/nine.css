@@ -824,7 +824,8 @@ nine-accordion {
 /* nine-accordion * {
     visibility: hidden;
 } */
-nine-accordion > div[type=header] {
+/* nine-accordion >  */
+.nine-accordion-title > div[type=header] {
     position: relative;
     top: 0;
     left: 0;
@@ -843,7 +844,8 @@ nine-accordion > div[type=header] {
     white-space: nowrap;
     min-height: var(--nine-lineHeight);
 }
-nine-accordion > div[type=header] > p {
+/* nine-accordion >  */
+.nine-accordion-title > div[type=header] > p {
     position: relative;
     width: 85%;
     display: block;
@@ -857,7 +859,7 @@ nine-accordion > div[type=header] > p {
     text-align: center;
     vertical-align: middle;
     right: 3vw;
-    top: 30%;
+    top: 35%;
     content: attr(data-content);
     font-family: var(--fontfamily);
     font-size: var(--nine-accordion-titleAfter-fontSize);

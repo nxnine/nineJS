@@ -27,18 +27,18 @@
         let start_date = new Date(_start_date);
         let end_date = _end_date ? new Date(_end_date) : new Date();
         //
-        let start_year = start_date.getUTCFullYear();
-        let start_month = start_date.getUTCMonth();
-        let start_day = start_date.getUTCDate();
-        let end_year = end_date.getUTCFullYear();
-        let end_month = end_date.getUTCMonth();
-        let end_day = end_date.getUTCDate();
-        // let start_year = start_date.getFullYear();
-        // let start_month = start_date.getMonth();
-        // let start_day = start_date.getDate();
-        // let end_year = end_date.getFullYear();
-        // let end_month = end_date.getMonth();
-        // let end_day = end_date.getDate();
+        // let start_year = start_date.getUTCFullYear();
+        // let start_month = start_date.getUTCMonth();
+        // let start_day = start_date.getUTCDate();
+        // let end_year = end_date.getUTCFullYear();
+        // let end_month = end_date.getUTCMonth();
+        // let end_day = end_date.getUTCDate();
+        let start_year = start_date.getFullYear();
+        let start_month = start_date.getMonth();
+        let start_day = start_date.getDate();
+        let end_year = end_date.getFullYear();
+        let end_month = end_date.getMonth();
+        let end_day = end_date.getDate();
         //
         let _total_days = Math.floor(Math.abs((end_date - start_date))/864e5); // 864e5 == (1000*60*60*24)
         if (start_date > end_date){ _total_days = _total_days * -1 };
@@ -188,7 +188,7 @@
     Date.prototype.getTimezoneOffsetString = function(){
         let _timezone_offset = nine.date.format.millisecs_hms(this.getTimezoneOffset()*60000);
         let _timezone_offset_str = _timezone_offset.negative!=''?'+':'-';
-        _timezone_offset_str = _timezone_offset_str+_timezone_offset.hours+_timezone_offset.minutes;
+        _timezone_offset_str = _timezone_offset_str+_timezone_offset.hours+':'+_timezone_offset.minutes;
         return _timezone_offset_str;
     };
     Date.prototype.getOffsetISODate = function(){
@@ -208,5 +208,5 @@
     };
     //
     // exports
-    nine.util.global(date,'nine.date');
+    nine.global.set(date,'nine.date');
 }());

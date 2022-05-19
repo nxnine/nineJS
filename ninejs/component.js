@@ -201,7 +201,7 @@
     // button
     component.button = class extends component.html {
         icon(iconName){
-            this.innerHTML = nine.util.global_get(iconName);
+            this.innerHTML = nine.global.get(iconName);
             let _svg = this.querySelector('svg');
             if (_svg.classList.contains('fa-w-auto')){
                 _svg.classList.toggle('fa-w-auto');
@@ -717,11 +717,11 @@
             let _currentdate = new Date();
             // helpers
             let _savedate = function(){
-                let _date_str = self.year.value+'-'+(self.month.value).slice(-2)+'-'+(self.day.value).slice(-2)
+                let _date_str = self.year.value+'-'+('00'+self.month.value).slice(-2)+'-'+('00'+self.day.value).slice(-2)+'T00:00:00'+_currentdate.getTimezoneOffsetString();
                 nine.storage.local.set(self.props.name,_date_str);
                 // special sauce, best make this generic
                 if (self.querySelector('p[id=date_display]')){
-                    self.querySelector('p[id=date_display]').innerText = daycount(self.props.name);
+                    self.querySelector('p[id=date_display]').innerText = meetings.daycount(self.props.name);
                 };
             };
             let _year_change = function(){
@@ -775,11 +775,13 @@
             let _saveddate = null;
             if (nine.storage.local.has(this.props.name)){
                 _saveddate = nine.storage.local.get(this.props.name);
-                console.log(_saveddate);
+                // console.log(_saveddate);
+                let _timeindex = _saveddate.indexOf('T');
+                if (_timeindex>-1){ _saveddate=_saveddate.slice(0,_timeindex) };
                 let _splitdate = _saveddate.split('-');
                 this.year.value = _splitdate[0];
-                this.month.value = _splitdate[1];
-                this.day.value = _splitdate[2];
+                this.month.value = Number(_splitdate[1]).toString();
+                this.day.value = Number(_splitdate[2]).toString();
             } else {
                 _saveddate = new Date();
                 this.year.value = _saveddate.getFullYear();
@@ -821,6 +823,6 @@
     // exports
     nx.component = component;
     //
-    nine.util.global(nx,'nine');
+    nine.global.set(nx,'nine');
 }());
 //

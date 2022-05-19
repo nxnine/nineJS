@@ -419,5 +419,5 @@
     //
 
     // exports
-    nine.util.global(Request,'nine.request');
+    nine.global.set(Request,'nine.request');
 }());

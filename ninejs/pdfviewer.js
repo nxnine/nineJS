@@ -24,7 +24,6 @@ nine.component.pdfview = class extends nine.component.html {
         //
     };
     postRender(){
-        // this.select = this._parent.querySelector('select');
         this.url = this.props.file;
         this.doc = null;
         this.pageCount = 0;
@@ -119,7 +118,6 @@ nine.component.pdfview = class extends nine.component.html {
             let dest = _item.dest[0];
             this.outline.push([_level,title,dest])
             this.toc_process(_level+1,_item.items)
-            // console.log(dest);
         };
     };
     toc_draw(){
@@ -448,7 +446,7 @@ nine.component.pdfview = class extends nine.component.html {
 
 //
 function __route_pdf_view(_pdfview_uri){
-    if(_pdfview_uri.indexOf('://')>-1){ _pdfview_uri = _pdfview_uri.slice(_pdfview_uri.indexOf('://')+3) }
+    if(_pdfview_uri.indexOf('://')>-1){ _pdfview_uri = nine.router.util.parse(_pdfview_uri).path };
     let _pdfview_id_page = _pdfview_uri.split('/');
     // console.log(_pdfview_id_page[0])
     // console.log(_pdfview_id_page[1])

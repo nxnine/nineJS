@@ -101,5 +101,5 @@
     emit.single = seEmit;
     emit.event = simpleEmit;
     //
-    nine.util.global(emit,'nine.emit')
+    nine.global.set(emit,'nine.emit')
 }());

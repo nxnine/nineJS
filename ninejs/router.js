@@ -29,33 +29,77 @@
             _lastchar = '';
         } else {
             __path = __path.slice(0,-1);
-            _lastchar = '/';
         };
         //
-        let _firstchar = __path.slice(0,1);
-        if (_firstchar!='/'){
-            _firstchar = '';
-        } else {
-            __path = __path.slice(1);
-            _firstchar = '/';
-        };
+        if (__path.slice(0,1)=='/') __path = __path.slice(1);
         //
-        let _params = [];
-        let _paths = [];
-        let _path_array = __path.split('/');
-        for (_idx in _path_array){
-            let _path = _path_array[_idx];
-            if (_path.slice(0,1)!=':'){
-                _paths.push(__escape_string('/'+_path));
-            } else {
+        let _params = [], _paths = [];
+        let _path_array=__path.split('/');
+        for (_path of _path_array){
+            if (_path.slice(0,1)==':'){
                 _params.push(_path.slice(1));
                 _paths.push('(?:\\/([^\\/#\\?]+?))');
+                continue;
             };
+            _paths.push(__escape_string('/'+_path));            
         };
-        //
         return ['^'+_paths.join('')+__escape_string(_lastchar)+'$',_params];
     };
     //
+
+    //
+    let __route_scheme_sep = '://';
+    let __route_query_sep = '?';
+    let __route_query_delim = '&';
+    let __route_query_join = '=';
+    let __route_query_array = ',';
+    function __route_parse(_route_uri_string){
+        let routeURI = {};
+        let _scheme_sep = _route_uri_string.indexOf(__route_scheme_sep);
+        let _query_sep = _route_uri_string.indexOf(__route_query_sep);
+        let _query_delim = _route_uri_string.indexOf(__route_query_delim);
+        let _query_join = _route_uri_string.indexOf(__route_query_join);
+        if(_scheme_sep>-1){
+            routeURI.scheme = _route_uri_string.slice(0,_scheme_sep);
+            // _route_uri_string = _route_uri_string.slice(_scheme_sep+3);
+            if (_query_sep>-1){
+                routeURI.path = _route_uri_string.slice(_scheme_sep+3,_query_sep);
+                _route_uri_string = _route_uri_string.slice(_query_sep+1);
+            } else {
+                // this might be a block of queries....
+                if (_query_delim==-1 && _query_join==-1){
+                    // nope, just a path
+                    routeURI.path = _route_uri_string.slice(_scheme_sep+3);
+                    _route_uri_string = "";
+                } else {
+                    // just queries
+                    routeURI.path = "";
+                    _route_uri_string = _route_uri_string.slice(_scheme_sep+3);
+                }
+            };
+            if (_route_uri_string.length>0){
+                routeURI.query = {};
+                let _queries = _route_uri_string.split(__route_query_delim);
+                _queries.forEach(function(_query_param){
+                    if (_query_param.indexOf(__route_query_join)>0){
+                        //
+                        _param_split = _query_param.split(__route_query_join);
+                        routeURI.query[_param_split[0]] = _param_split[1]
+                    } else if (_query_param.indexOf(__route_query_join)==0 && _query_param.length>1){
+                        routeURI.query[_query_param.slice(1)] = _query_param.slice(1);
+                    } else if (_query_param.indexOf(__route_query_join)==-1){
+                        routeURI.query[_query_param] = _query_param;
+                    };
+                    if (_query_param in routeURI.query && routeURI.query[_query_param].indexOf(__route_query_array)){
+                        routeURI.query[_query_param] = routeURI.query[_query_param].split(__route_query_array)
+                    }
+                })
+            }
+        };
+        return routeURI;
+    }
+    //
+
     /*
         router
             navigator
@@ -92,9 +136,7 @@
     */
     // because of our unique use case, we only check for cordova
     _use_system = false;
-    if(window.hasOwnProperty("cordova")){
-        _use_system = true;
-    }
+    if(window.hasOwnProperty("cordova")) _use_system = true;
     // default
     function default_handler(_url){
         if (_use_system){
@@ -122,18 +164,12 @@
                 default_handler(__href);
             }
         } else {
-            if (add_state==null){
-                add_state = true;
-            }
-            if (!_queries){
-                _queries = {};
-            }
-            let _query = null;
+            if (add_state==null) add_state = true;
+            if (!_queries) _queries = {};
             let _query_idx = __href.indexOf('?');
             if (_query_idx>-1){
-                _query = __href.slice(_query_idx+1);
+                _queries = nine.request.deserializeQuery(__href.slice(_query_idx+1));
                 __href = __href.slice(0,_query_idx);
-                _queries = nine.request.deserializeQuery(_query);
             };
             let _routes = Object.values(navigator_routes);
             let _match = false;
@@ -161,52 +197,52 @@
                             //
                         }
                         );
-                }
-                else if(_route.async){
-                    let _route_to = {path:__href,query:_queries,route:_route};
-                    let _route_from = {};
-                    let _async = new Promise(function (resolve, reject) {
-                        _route.async(_route_to,_route_from,resolve,reject);
-                    }).then(
-                        function(successResult){
-                            /*
-                            {
-                                type: 'popup',  // page, popup, panel; if panel, then we need a target...
-                                    template: ``,
-                                    context: {}
-                                }
-                                */
-                               let _template = null;
-                               if (_route.template){
-                                _template = doT.template(_route.template);
-                            }
-                            else if (successResult.template){
-                                _template = doT.template(successResult.template);
-                            }
-                            let _html_str = _template(successResult.context);
-                            if (successResult.type == 'popup'){
-                                console.log(JSON.stringify(_route_to.query))
-                                let __name = _route_to.query.name;
-                                if (!__name){ __name = __href };
-                                nine.component.popup.create(__name,_html_str);
-                            }
-                            if (successResult.type == 'page'){
-                                //
-                                navigator_view(_html_str,{path:__href,query:_queries},add_state);
-                                if (_route.on){
-                                    if (_route.on.pageAfterIn){
-                                        _route.on.pageAfterIn(null,nine.view)
+                    }
+                    else if(_route.async){
+                        let _route_to = {path:__href,query:_queries,route:_route};
+                        let _route_from = {};
+                        let _async = new Promise(function (resolve, reject) {
+                            _route.async(_route_to,_route_from,resolve,reject);
+                        }).then(
+                            function(successResult){
+                                /*
+                                {
+                                    type: 'popup',  // page, popup, panel; if panel, then we need a target...
+                                        template: ``,
+                                        context: {}
                                     }
+                                    */
+                                let _template = null;
+                                if (_route.template){
+                                    _template = doT.template(_route.template);
+                                }
+                                else if (successResult.template){
+                                    _template = doT.template(successResult.template);
+                                }
+                                let _html_str = _template(successResult.context);
+                                if (successResult.type == 'popup'){
+                                    console.log(JSON.stringify(_route_to.query))
+                                    let __name = _route_to.query.name;
+                                    if (!__name){ __name = __href };
+                                    nine.component.popup.create(__name,_html_str);
+                                }
+                                if (successResult.type == 'page'){
+                                    //
+                                    navigator_view(_html_str,{path:__href,query:_queries},add_state);
+                                    if (_route.on){
+                                        if (_route.on.pageAfterIn){
+                                            _route.on.pageAfterIn(null,nine.view)
+                                        }
+                                    };
+                                    //
                                 };
+                            },
+                            function(errorResult){
                                 //
-                            };
-                        },
-                        function(errorResult){
-                            //
-                        }
-                        );
-                    };
-                    break;
+                            }
+                            );
+                        };
+                        break;
                 }
             };
             if (!_match){
@@ -215,6 +251,15 @@
             //
         };
     }
+    function navigator_popstate(event){
+        // there's a problem here when navigating back to the first page
+        // need a special navigate_first that does a history.replaceState
+        if (event.state==null && _navigator_default_route){
+            navigator_go(_navigator_default_route,{},false);
+        } else {
+            navigator_go(event.state.path,event.state.query,false);
+        }
+    };
     function navigator_click(event){
         event.preventDefault();
         let _el = event.target;
@@ -230,7 +275,7 @@
     function navigator_addRoute(__route){
         let _name = __route.name || __route.path;
         let _parsed_path = __parse_path(__route.path);
-
+        // console.log(_parsed_path);
         //
         let _route = {
             name: _name,
@@ -240,20 +285,13 @@
             params: _parsed_path[1]
         };
         //
+        if (__route.resources && app){ app.resources.add(__route.resources,false) }
+        if (__route.fetchOnce && app){ app.resources.add(__route.fetchOnce) }
         if (__route.template){ _route.template = __route.template };
         if (__route.url){ _route.url = __route.url };
         if (__route.async){ _route.async = __route.async };
         if (__route.on){ _route.on = __route.on };
         navigator_routes[_name] = _route;
-    };
-    function navigator_popstate(event){
-        // there's a problem here when navigating back to the first page
-        // need a special navigate_first that does a history.replaceState
-        if (event.state==null && _navigator_default_route){
-            navigator_go(_navigator_default_route,{},false);
-        } else {
-            navigator_go(event.state.path,event.state.query,false);
-        }
     };
     function navigator_addRoutes(__routes){
         for (let _i = 0;_i < __routes.length;_i++){
@@ -310,6 +348,7 @@
             history: navigator_popstate
         },
         util: {
+            parse: __route_parse,
             addClick: navigator_addClick,
             addRoute: navigator_addRoute,
             observe: observer_watch,
@@ -324,7 +363,7 @@
     // exports
     nx.router = router;
     //
-    nine.util.global(nx,'nine');
+    nine.global.set(nx,'nine');
 }());
 
 nine.router.util.init();

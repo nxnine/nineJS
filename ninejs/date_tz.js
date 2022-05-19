@@ -91,7 +91,7 @@
             return this;
         };
         clone(){
-            return moment(this.getTime()).tz(this.timeZone);
+            return new TimezoneDate(this.getTime()).tz(this.timeZone);
         }
         getDay(){ return this.__local_day; };
         getDate(){ return this.__local_date; };
@@ -146,6 +146,6 @@
     date.tz = {};
     date.tz.TimezoneDate = TimezoneDate;
     //
-    nine.util.global(date,'nine.date');
-    nine.util.global(moment,'moment');
+    nine.global.set(date,'nine.date');
+    nine.global.set(moment,'moment');
 }());
